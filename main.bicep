@@ -4,9 +4,6 @@ param vmName string
 @description('The location for all resources')
 param location string = 'centralus'
 
-@description('The availability zone for the VM')
-param zone string = '1'
-
 @description('The VM size')
 param vmSize string = 'Standard_F8s_v2'
 
@@ -21,12 +18,6 @@ param adminPassword string
 @secure()
 param postgresPassword string = adminPassword
 
-@description('PostgreSQL port')
-param postgresPort string = '5432'
-
-@description('PostgreSQL data directory')
-param postgresDataDir string = 'C:\\Program Files\\PostgreSQL\\15\\data'
-
 @description('The publisher of the image')
 param imagePublisher string = 'MicrosoftWindowsServer'
 
@@ -39,8 +30,11 @@ param imageSku string = '2019-datacenter-gensecond'
 @description('The version of the image')
 param imageVersion string = 'latest'
 
+@description('The DSC configuration zip file content (base64 encoded)')
+param dscConfiguration string
+
 // Create Virtual Network
-resource vnet 'Microsoft.Network/virtualNetworks@2023-05-01' = {
+resource vnet 'Microsoft.Network/virtualNetworks@2024-05-01' = {
   name: '${vmName}-vnet'
   location: location
   properties: {
@@ -49,19 +43,25 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-05-01' = {
         '10.0.0.0/16'
       ]
     }
+    privateEndpointVNetPolicies: 'Disabled'
     subnets: [
       {
         name: 'default'
         properties: {
           addressPrefix: '10.0.1.0/24'
+          delegations: []
+          privateEndpointNetworkPolicies: 'Disabled'
+          privateLinkServiceNetworkPolicies: 'Enabled'
         }
       }
     ]
+    virtualNetworkPeerings: []
+    enableDdosProtection: false
   }
 }
 
 // Create Network Security Group
-resource nsg 'Microsoft.Network/networkSecurityGroups@2023-05-01' = {
+resource nsg 'Microsoft.Network/networkSecurityGroups@2024-05-01' = {
   name: '${vmName}-nsg'
   location: location
   properties: {
@@ -69,7 +69,7 @@ resource nsg 'Microsoft.Network/networkSecurityGroups@2023-05-01' = {
       {
         name: 'RDP'
         properties: {
-          priority: 1000
+          priority: 300
           protocol: 'Tcp'
           access: 'Allow'
           direction: 'Inbound'
@@ -84,22 +84,22 @@ resource nsg 'Microsoft.Network/networkSecurityGroups@2023-05-01' = {
 }
 
 // Create Public IP
-resource publicIp 'Microsoft.Network/publicIPAddresses@2023-05-01' = {
+resource publicIp 'Microsoft.Network/publicIPAddresses@2024-05-01' = {
   name: '${vmName}-pip'
   location: location
   sku: {
     name: 'Standard'
+    tier: 'Regional'
   }
   properties: {
+    publicIPAddressVersion: 'IPv4'
     publicIPAllocationMethod: 'Static'
-    zones: [
-      zone
-    ]
+    idleTimeoutInMinutes: 4
   }
 }
 
 // Create Network Interface
-resource nic 'Microsoft.Network/networkInterfaces@2023-05-01' = {
+resource nic 'Microsoft.Network/networkInterfaces@2024-05-01' = {
   name: '${vmName}-nic'
   location: location
   properties: {
@@ -111,15 +111,21 @@ resource nic 'Microsoft.Network/networkInterfaces@2023-05-01' = {
             id: '${vnet.id}/subnets/default'
           }
           privateIPAllocationMethod: 'Dynamic'
+          privateIPAddressVersion: 'IPv4'
           publicIPAddress: {
             id: publicIp.id
             properties: {
               deleteOption: 'Detach'
             }
           }
+          primary: true
         }
       }
     ]
+    dnsSettings: {
+      dnsServers: []
+    }
+    enableAcceleratedNetworking: true
     networkSecurityGroup: {
       id: nsg.id
     }
@@ -129,15 +135,9 @@ resource nic 'Microsoft.Network/networkInterfaces@2023-05-01' = {
 resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
   name: vmName
   location: location
-  zones: [
-    zone
-  ]
   properties: {
     hardwareProfile: {
       vmSize: vmSize
-    }
-    additionalCapabilities: {
-      hibernationEnabled: false
     }
     storageProfile: {
       imageReference: {
@@ -148,7 +148,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
       }
       osDisk: {
         osType: 'Windows'
-        name: '${vmName}_OsDisk'
+        name: '${vmName}_OsDisk_1_${uniqueString(vmName)}'
         createOption: 'FromImage'
         caching: 'ReadWrite'
         managedDisk: {
@@ -156,11 +156,10 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
         }
         deleteOption: 'Delete'
       }
-      dataDisks: []
       diskControllerType: 'SCSI'
     }
     osProfile: {
-      computerName: vmName
+      computerName: replace(vmName, '-', '')
       adminUsername: adminUsername
       adminPassword: adminPassword
       windowsConfiguration: {
@@ -172,7 +171,6 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
           enableHotpatching: false
         }
       }
-      secrets: []
       allowExtensionOperations: true
     }
     securityProfile: {
@@ -200,42 +198,26 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
   }
 }
 
-// Install Java Runtime Environment
-resource jdkExtension 'Microsoft.Compute/virtualMachines/extensions@2023-07-01' = {
+// Install Java Runtime Environment and PostgreSQL
+resource softwareExtension 'Microsoft.Compute/virtualMachines/extensions@2023-07-01' = {
   parent: vm
-  name: 'JavaRuntime'
+  name: 'DSCExtension'
   location: location
   properties: {
-    publisher: 'Microsoft.Azure.Extensions'
-    type: 'JavaRuntime'
-    typeHandlerVersion: '1.0'
+    publisher: 'Microsoft.Powershell'
+    type: 'DSC'
+    typeHandlerVersion: '2.77'
     autoUpgradeMinorVersion: true
     settings: {
-      version: '17'
-      distribution: 'temurin'
-      jdk: true
+      configuration: {
+        url: 'data:text/plain;base64,${dscConfiguration}'
+        script: 'config.ps1'
+        function: 'VMSoftwareConfig'
+      }
+      configurationArguments: {
+        computerName: vm.name
+        postgresPassword: postgresPassword
+      }
     }
   }
-}
-
-// Install PostgreSQL
-resource postgresExtension 'Microsoft.Compute/virtualMachines/extensions@2023-07-01' = {
-  parent: vm
-  name: 'PostgreSQL'
-  location: location
-  properties: {
-    publisher: 'Microsoft.Azure.Extensions'
-    type: 'PostgreSQL'
-    typeHandlerVersion: '1.0'
-    autoUpgradeMinorVersion: true
-    settings: {
-      version: '15'
-      password: postgresPassword
-      port: postgresPort
-      dataDir: postgresDataDir
-    }
-  }
-  dependsOn: [
-    jdkExtension
-  ]
 }

@@ -3,13 +3,19 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "vmName": {
-            "value": "vm-test-with-bicep"
+            "value": "vm-test-bicep"
+        },
+        "location": {
+            "value": "westus"
+        },
+        "resourceGroup": {
+            "value": "benny-poc-westus-rg"
         },
         "adminPassword": {
-            "value": "your-password"
+            "value": "Azure@123456"
         },
         "postgresPassword": {
-            "value": "your-postgres-password"
+            "value": "Azure@123456"
         }
     }
 } 
