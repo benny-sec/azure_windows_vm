@@ -30,12 +30,6 @@ param imageSku string = '2019-datacenter-gensecond'
 @description('The version of the image')
 param imageVersion string = 'latest'
 
-@description('The storage account name')
-param storageAccountName string = 'vmteststorage${uniqueString(resourceGroup().id)}'
-
-@description('The storage account SKU')
-param storageAccountSku string = 'Standard_LRS'
-
 // Create Virtual Network
 resource vnet 'Microsoft.Network/virtualNetworks@2024-05-01' = {
   name: '${vmName}-vnet'
@@ -201,27 +195,10 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
   }
 }
 
-// Storage Account for DSC
-resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
-  name: storageAccountName
-  location: location
-  sku: {
-    name: storageAccountSku
-  }
-  kind: 'StorageV2'
-  properties: {
-    minimumTlsVersion: 'TLS1_2'
-    allowBlobPublicAccess: false
-    networkAcls: {
-      defaultAction: 'Deny'
-      bypass: 'AzureServices'
-    }
-  }
-}
-
 // DSC Extension
 resource dscExtension 'Microsoft.Compute/virtualMachines/extensions@2023-07-01' = {
-  name: '${vm.name}/DSCExtension'
+  parent: vm
+  name: 'DSCExtension'
   location: location
   properties: {
     publisher: 'Microsoft.Powershell'
