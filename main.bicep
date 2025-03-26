@@ -14,10 +14,6 @@ param adminUsername string = 'windows-system-admin'
 @secure()
 param adminPassword string
 
-@description('PostgreSQL superuser password')
-@secure()
-param postgresPassword string = adminPassword
-
 @description('The publisher of the image')
 param imagePublisher string = 'MicrosoftWindowsServer'
 
