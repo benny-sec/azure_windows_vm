@@ -1,0 +1,15 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vmName": {
+            "value": "vm-test-with-bicep"
+        },
+        "adminPassword": {
+            "value": "your-password"
+        },
+        "postgresPassword": {
+            "value": "your-postgres-password"
+        }
+    }
+} 
