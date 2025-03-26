@@ -1,21 +1,21 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
-    "contentVersion": "1.0.0.0",
-    "parameters": {
-        "vmName": {
-            "value": "vm-test-bicep"
-        },
-        "location": {
-            "value": "westus"
-        },
-        "resourceGroup": {
-            "value": "benny-poc-westus-rg"
-        },
-        "adminPassword": {
-            "value": "Azure@123456"
-        },
-        "postgresPassword": {
-            "value": "Azure@123456"
-        }
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "vmName": {
+      "value": "vm-test-bicep"
+    },
+    "location": {
+      "value": "westus"
+    },
+    "resourceGroup": {
+      "value": "benny-poc-westus-rg"
+    },
+    "adminPassword": {
+      "value": "G6HqMtdJCi!A"
+    },
+    "postgresPassword": {
+      "value": "5I4H4Pmz1Y!A"
     }
-} 
+  }
+}
