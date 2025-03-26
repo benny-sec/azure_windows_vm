@@ -27,7 +27,7 @@ while (-not $gitAvailable -and $attempt -lt $maxAttempts) {
         }
     } catch {
         Write-Host "Git not available yet, waiting..."
-        Start-Sleep -Seconds 5
+        Start-Sleep -Seconds 10
     }
 }
 
