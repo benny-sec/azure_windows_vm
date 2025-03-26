@@ -44,7 +44,6 @@ az deployment group create \
     --template-file main.bicep \
     --parameters vmName="$VM_NAME" \
     --parameters location="$LOCATION" \
-    --parameters adminPassword="$ADMIN_PASSWORD" \
-    --parameters postgresPassword="$POSTGRES_PASSWORD"
+    --parameters adminPassword="$ADMIN_PASSWORD"
 
 echo "Deployment complete!"
