@@ -30,9 +30,6 @@ param imageSku string = '2019-datacenter-gensecond'
 @description('The version of the image')
 param imageVersion string = 'latest'
 
-@description('The DSC configuration zip file content (base64 encoded)')
-param dscConfiguration string
-
 // Create Virtual Network
 resource vnet 'Microsoft.Network/virtualNetworks@2024-05-01' = {
   name: '${vmName}-vnet'
