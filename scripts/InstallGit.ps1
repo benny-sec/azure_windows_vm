@@ -10,4 +10,16 @@ Start-Process -FilePath $installerPath -ArgumentList "/VERYSILENT /NORESTART /NO
 Remove-Item $installerPath
 
 # Verify Git installation
-git --version 
+git --version
+
+# Create workspace directory if it doesn't exist
+$workspacePath = "C:\workspace"
+if (-not (Test-Path $workspacePath)) {
+    New-Item -ItemType Directory -Path $workspacePath
+}
+
+# Clone the repository
+Write-Host "Cloning repository to $workspacePath..."
+git clone https://github.com/benny-sec/azure_windows_vm.git "$workspacePath\azure_windows_vm"
+
+Write-Host "Git installation and repository cloning completed!" 
