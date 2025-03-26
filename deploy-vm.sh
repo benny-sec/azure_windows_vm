@@ -6,16 +6,16 @@ set -e
 # Get the directory of the script
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-# Get resource group from parameters.json
-RESOURCE_GROUP=$(jq -r '.parameters.resourceGroup.value' parameters.json)
-VM_NAME=$(jq -r '.parameters.vmName.value' parameters.json)
-LOCATION=$(jq -r '.parameters.location.value' parameters.json)
-
 # Generate random 10-char password and append !A
 generate_password() {
     openssl rand -base64 10 | tr -dc 'a-zA-Z0-9' | head -c 10
     echo "!A"
 }
+
+# Get resource group from parameters.json
+RESOURCE_GROUP=$(jq -r '.parameters.resourceGroup.value' parameters.json)
+VM_NAME=$(jq -r '.parameters.vmName.value' parameters.json)
+LOCATION=$(jq -r '.parameters.location.value' parameters.json)
 
 # Generate passwords
 ADMIN_PASSWORD=$(generate_password)
@@ -35,23 +35,12 @@ else
     echo "Resource group $RESOURCE_GROUP already exists"
 fi
 
-# Create DSC package
-echo "Creating DSC package..."
-cd "$SCRIPT_DIR"
-rm -f dsc.zip  # Remove old zip if exists
-cp dsc/VMSoftwareConfig.ps1 dsc/config.ps1  # Create a copy with shorter name
-zip -r dsc.zip dsc/config.ps1  # Only zip the renamed file
-rm dsc/config.ps1  # Clean up the temporary file
-
-# Read the zip file content as base64
-DSC_ZIP_BASE64=$(base64 -w 0 dsc.zip)
-
 # Deploy using Bicep
 echo "Deploying to resource group: $RESOURCE_GROUP"
 echo "VM Name: $VM_NAME"
 echo "Location: $LOCATION"
 
-# Deploy with DSC configuration
+# Deploy with generated passwords
 az deployment group create \
   --name "vm-deployment-$(date +%s)" \
   --resource-group "$RESOURCE_GROUP" \
@@ -59,7 +48,6 @@ az deployment group create \
   --parameters vmName="$VM_NAME" \
   --parameters location="$LOCATION" \
   --parameters adminPassword="$ADMIN_PASSWORD" \
-  --parameters postgresPassword="$POSTGRES_PASSWORD" \
-  --parameters dscConfiguration="$DSC_ZIP_BASE64"
+  --parameters postgresPassword="$POSTGRES_PASSWORD"
 
 echo "Deployment completed!"

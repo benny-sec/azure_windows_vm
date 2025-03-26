@@ -210,8 +210,8 @@ resource softwareExtension 'Microsoft.Compute/virtualMachines/extensions@2023-07
     autoUpgradeMinorVersion: true
     settings: {
       configuration: {
-        url: 'data:text/plain;base64,${dscConfiguration}'
-        script: 'config.ps1'
+        url: 'https://raw.githubusercontent.com/benny-sec/azure_windows_vm/main/dsc/VMSoftwareConfig.ps1'
+        script: 'VMSoftwareConfig.ps1'
         function: 'VMSoftwareConfig'
       }
       configurationArguments: {
