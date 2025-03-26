@@ -195,28 +195,24 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
   }
 }
 
-// DSC Extension
-resource dscExtension 'Microsoft.Compute/virtualMachines/extensions@2023-07-01' = {
+// Install Git using Custom Script Extension
+resource gitExtension 'Microsoft.Compute/virtualMachines/extensions@2023-07-01' = {
   parent: vm
-  name: 'DSCExtension'
+  name: 'GitExtension'
   location: location
   properties: {
-    publisher: 'Microsoft.Powershell'
-    type: 'DSC'
-    typeHandlerVersion: '2.83'
+    publisher: 'Microsoft.Compute'
+    type: 'CustomScriptExtension'
+    typeHandlerVersion: '1.10'
     autoUpgradeMinorVersion: true
     settings: {
-      configurationData: {
-        url: 'https://raw.githubusercontent.com/benny-sec/azure_windows_vm/main/dsc/VMSoftwareConfig.ps1'
-        script: 'VMSoftwareConfig.ps1'
-        function: 'VMSoftwareConfig'
-      }
-      postgresPassword: postgresPassword
-    }
-    protectedSettings: {
-      configurationArguments: {
-        postgresPassword: postgresPassword
-      }
+      fileUris: [
+        'https://raw.githubusercontent.com/benny-sec/azure_windows_vm/main/scripts/InstallGit.ps1'
+      ]
+      commandToExecute: 'powershell -ExecutionPolicy Bypass -File InstallGit.ps1'
     }
   }
 }
+
+// Output the VM's public IP address
+output publicIpAddress string = publicIp.properties.ipAddress
